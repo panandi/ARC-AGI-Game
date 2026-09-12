@@ -28,6 +28,7 @@ const dom = {
   tierSelect: el("tier-select"),
   btnHint: el("btn-hint"),
   hintText: el("hint-text"),
+  answerSize: el("answer-size"),
   opponent: el("opponent-select"),
   optServer: el("opt-server"),
   keyrow: el("keyrow"),
@@ -738,6 +739,7 @@ function resetView() {
   dom.taskIdLabel.textContent = "";
   dom.btnHint.hidden = true;
   dom.hintText.hidden = true;
+  dom.answerSize.textContent = "";
   dom.examples.textContent = "";
   dom.testInput.textContent = "";
   setOut(blank(3, 3));
@@ -805,7 +807,17 @@ async function startRace() {
     dom.hintText.hidden = true;
     dom.hintText.textContent = `The rule is: ${state.task.hint}.`;
   }
-  setOut(blank(state.task.test_input.length, state.task.test_input[0].length));
+  // The answer is often a different shape from the test input — feca6190 goes
+  // from 1x5 in to 20x20 out — and hunting for the right size is friction, not
+  // puzzle. Open the editor at the shape the answer needs and say so.
+  const ar = state.task.answer_rows || state.task.test_input.length;
+  const ac = state.task.answer_cols || state.task.test_input[0].length;
+  setOut(blank(ar, ac));
+  dom.answerSize.innerHTML = "";
+  dom.answerSize.append("Answer is ");
+  const size = document.createElement("strong");
+  size.textContent = `${ar} × ${ac}`;
+  dom.answerSize.append(size);
   state.started = true;
   state.startWall = Date.now();
   state.human.status = "playing";
@@ -843,9 +855,13 @@ function populateTasks() {
   list.forEach((t, i) => {
     const option = document.createElement("option");
     option.value = t.id;
+    // Show the size of the ANSWER, not of the test input: the answer is what
+    // has to be painted, and it is the honest measure of how long this takes.
+    const size = t.arows ? `answer ${t.arows}×${t.acols}` : `${t.rows}×${t.cols}`;
+    const heavy = t.arows && t.arows * t.acols > 150 ? " · slow to paint" : "";
     option.textContent = easyOnly
-      ? `${i + 1}. ${t.id} · ${t.train} examples`
-      : `${t.id} · ${t.rows}×${t.cols} · ${t.train} examples`;
+      ? `${i + 1}. ${t.id} · ${size} · ${t.train} examples`
+      : `${t.id} · ${size} · ${t.train} examples${heavy}`;
     dom.taskSelect.appendChild(option);
   });
   const count = list.length;

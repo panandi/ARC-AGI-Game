@@ -30,9 +30,10 @@
       The <em>same</em> hidden rule was applied to every one of them.</li>
     <li><strong>Name the rule.</strong> On Easy it is always one plain step —
       something like "rotate it" or "swap the colours".</li>
-    <li><strong>Build the answer</strong> for the test input. Set the size, pick a
-      colour, then click or drag to paint. <em>Copy input</em> starts you off from
-      the test grid, which is usually the fastest way in.</li>
+    <li><strong>Build the answer.</strong> The grid already opens at the size the
+      answer needs — the toolbar tells you what that is. Pick a colour, then click
+      or drag to paint. <em>Copy input</em> fills it from the test grid, handy when
+      the answer is the same shape.</li>
     <li><strong>Submit.</strong> Three attempts and five minutes each. Whoever gets
       it right in the least time wins.</li>
   </ol>
@@ -138,6 +139,7 @@
         <button type="button" id="tool-paint" class="tool" aria-pressed="true">Paint <kbd>P</kbd></button>
         <button type="button" id="tool-fill" class="tool" aria-pressed="false">Fill <kbd>F</kbd></button>
       </span>
+      <span class="answer-size" id="answer-size"></span>
     </div>
 
     <div class="palette" id="palette" role="group" aria-label="Colour — keys 0 to 9"></div>

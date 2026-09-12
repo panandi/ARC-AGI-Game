@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MNIST-PRO Race</title>
+<meta name="description" content="A digit hidden behind a moving window. Identify it in the fewest sensing steps, and race a vision model that usually can't." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='2' y='2' width='7' height='7' fill='%23fff' stroke='%2300E5FF'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+<a class="skip" href="#board-human">Skip to the canvas</a>
+
+<header class="masthead">
+  <div class="brand">
+    <h1>MNIST-PRO</h1>
+    <p class="subtitle">FEWEST <span class="vs">steps</span> WINS</p>
+  </div>
+  <div class="brand-meta topnav">
+    <a href="./">ARC Race</a>
+    <a href="https://github.com/declare-lab/MNIST-PRO">Benchmark</a>
+    <span class="pill" id="mode-pill">…</span>
+  </div>
+</header>
+
+<section class="howto" aria-label="How to play">
+  <h2>How to play</h2>
+  <ol class="steps">
+    <li><strong>A handwritten digit fills the canvas</strong>, but you only ever see
+      through one small window. Everything else is grey. You start on a stroke, so
+      there's always something in view.</li>
+    <li><strong>Move the window</strong> with the arrow keys or the pad — up, down,
+      left, right. Each move is one sensing step, and the window travels half its
+      own width, so views overlap.</li>
+    <li><strong>You see one window at a time.</strong> The rest is memory. That's
+      the whole point of the benchmark — turn on <em>Keep a trail</em> if you'd
+      rather play the easier lookback version.</li>
+    <li><strong>Name the digit once.</strong> You get <em>one</em> answer: right
+      wins the round, wrong ends it. Fewest sensing steps wins; correctness comes
+      first, so a lucky one-step guess doesn't beat a careful correct one.</li>
+  </ol>
+  <p class="howto-foot">
+    36 steps available, which is exactly the number of distinct window positions.
+    Published models score 6.5–61% here while scoring 92–98% on the same digits
+    shown whole, so you are the favourite. <a href="./guide.html">Full guide →</a>
+  </p>
+</section>
+
+<section class="controls" aria-label="Race controls">
+  <div class="field">
+    <label for="episode-select">Episode</label>
+    <select id="episode-select"><option value="">Loading…</option></select>
+  </div>
+
+  <div class="field">
+    <label for="view-select">Memory</label>
+    <select id="view-select">
+      <option value="single">One window — as published</option>
+      <option value="trail">Keep a trail — easier</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="opponent-select">Opponent</label>
+    <select id="opponent-select">
+      <option value="solo">Solo</option>
+      <option value="key">AI — using my OpenRouter key</option>
+    </select>
+  </div>
+
+  <div class="field field-actions">
+    <button id="btn-start" class="primary" type="button">START ROUND</button>
+    <button id="btn-random" type="button">RANDOM</button>
+    <button id="btn-stop" class="danger" type="button" disabled>STOP</button>
+  </div>
+
+  <div class="keyrow" id="keyrow" hidden>
+    <input id="api-key" type="password" placeholder="sk-or-v1-…" autocomplete="off"
+           aria-label="Your OpenRouter API key" />
+    <button type="button" id="btn-save-key">Save key</button>
+    <button type="button" id="btn-forget-key">Forget</button>
+    <p class="hint">
+      Stored only in this browser and sent only to openrouter.ai. The model needs
+      to see images, so this uses a vision model. Get a key at
+      <a href="https://openrouter.ai/keys">openrouter.ai/keys</a>.
+    </p>
+  </div>
+</section>
+
+<p class="banner" id="banner" hidden></p>
+
+<section class="scorebar" aria-label="Sensing steps">
+  <div class="score-cell human">
+    <span class="score-label">YOUR STEPS</span>
+    <span class="score-value" id="human-steps">0</span>
+  </div>
+  <div class="score-cell mid">
+    <span class="score-label">STEPS LEFT</span>
+    <span class="score-value dim" id="steps-left">36</span>
+  </div>
+  <div class="score-cell ai">
+    <span class="score-label">AI STEPS</span>
+    <span class="score-value" id="ai-steps">—</span>
+  </div>
+</section>
+
+<main class="arena">
+  <section class="panel" aria-label="Your canvas">
+    <div class="panel-head">
+      <h2>HUMAN</h2>
+      <span class="state-chip" id="human-chip">IDLE</span>
+    </div>
+    <div class="canvas-wrap">
+      <canvas class="board" id="board-human" width="224" height="224"
+              aria-label="The masked canvas"></canvas>
+      <div class="canvas-veil" id="human-veil"><span>Press START ROUND</span></div>
+    </div>
+
+    <div class="dpad" role="group" aria-label="Move the window">
+      <button type="button" data-dir="up" id="dp-up">↑</button>
+      <button type="button" data-dir="left" id="dp-left">←</button>
+      <button type="button" data-dir="down" id="dp-down">↓</button>
+      <button type="button" data-dir="right" id="dp-right">→</button>
+    </div>
+
+    <div class="guessrow">
+      <span class="guess-label">Answer once</span>
+      <div class="guess-buttons" id="guess-buttons"></div>
+    </div>
+    <p class="result" id="human-result" aria-live="polite"></p>
+
+    <dl class="stats">
+      <div><dt>Window</dt><dd id="human-window">—</dd></div>
+      <div><dt>Seen</dt><dd id="human-seen">0%</dd></div>
+      <div><dt>State</dt><dd id="human-state">Idle</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel" aria-label="The model's canvas">
+    <div class="panel-head">
+      <h2>AI</h2>
+      <span class="state-chip" id="ai-chip">IDLE</span>
+    </div>
+    <div class="canvas-wrap">
+      <canvas class="board" id="board-ai" width="224" height="224"
+              aria-label="What the model can see"></canvas>
+      <div class="canvas-veil" id="ai-veil"><span>Not playing</span></div>
+    </div>
+    <p class="ai-thinking" id="ai-thinking" hidden>Thinking…</p>
+    <p class="result" id="ai-result" aria-live="polite"></p>
+
+    <dl class="stats">
+      <div><dt>Window</dt><dd id="ai-window">—</dd></div>
+      <div><dt>Seen</dt><dd id="ai-seen">0%</dd></div>
+      <div><dt>State</dt><dd id="ai-state">Idle</dd></div>
+    </dl>
+
+    <div class="agent">
+      <div class="agent-row">
+        <span class="agent-label">Model</span>
+        <span class="agent-value" id="ai-model">—</span>
+      </div>
+      <div class="agent-note">
+        <span class="agent-label">Its thought</span>
+        <blockquote id="ai-rule">—</blockquote>
+      </div>
+      <p class="agent-error" id="ai-error" hidden></p>
+    </div>
+  </section>
+</main>
+
+<section class="scoreboard" id="scoreboard" hidden>
+  <h2 id="race-result">—</h2>
+  <p class="verdict" id="verdict-reason">—</p>
+  <table class="results">
+    <thead>
+      <tr><th>Lane</th><th>Answer</th><th>Result</th><th>Sensing steps</th></tr>
+    </thead>
+    <tbody>
+      <tr id="result-human">
+        <th scope="row" class="lane-human">HUMAN</th>
+        <td class="r-answer">—</td><td class="r-outcome">—</td><td class="r-steps">—</td>
+      </tr>
+      <tr id="result-ai">
+        <th scope="row" class="lane-ai">AI</th>
+        <td class="r-answer">—</td><td class="r-outcome">—</td><td class="r-steps">—</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="caveat">
+    A correct answer always beats a wrong one. Between two correct answers, fewer
+    sensing steps wins; an equal count is a tie. Time is never counted — the model
+    answers over a network and would lose on latency alone.
+  </p>
+</section>
+
+<details class="log-wrap" open>
+  <summary>Event log <span class="log-count" id="log-count">0</span></summary>
+  <ol class="log" id="log" aria-live="polite"></ol>
+</details>
+
+<footer class="legend">
+  <p id="legend-main">
+    Canvases are generated by <a href="https://github.com/declare-lab/MNIST-PRO">MNIST-PRO</a>
+    (MIT) — Toh, Majumder, Liu, Chen and Poria, DeCLaRe Lab (NTU) and A*STAR,
+    <a href="https://arxiv.org/abs/2608.31022">arXiv:2608.31022</a>. Digits are the
+    MNIST test set (LeCun, Cortes and Burges), CC BY-SA 3.0.
+  </p>
+  <p class="legend-dim">
+    Episode numbering follows their sampler at seed 42, so episode 0 here is the
+    episode 0 of the published runs. The canvas lives in your browser, so it is
+    readable in developer tools — it's a friendly race.
+  </p>
+</footer>
+
+<script src="./config.js"></script>
+<script src="./js/mnistpro.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+Canvases generated with MNIST-PRO (MIT):
+  https://github.com/declare-lab/MNIST-PRO
+  Toh, Majumder, Liu, Chen and Poria, DeCLaRe Lab (NTU) and A*STAR.
+  MNIST-PRO: MNIST is Back as a Partially Observable World for AI Agents.
+  arXiv:2608.31022
+
+Source digits are the MNIST test set (LeCun, Cortes and Burges),
+derived from NIST Special Database 19, CC BY-SA 3.0.
+
+Geometry: 224px canvas, 64px window, 32px step,
+max_steps 36, sampled at seed 42 with their sample_balanced.

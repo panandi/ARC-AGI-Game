@@ -23,9 +23,37 @@
   </div>
 </header>
 
+<section class="howto" aria-label="How to play">
+  <h2>How to play</h2>
+  <ol class="steps">
+    <li><strong>Read the examples.</strong> Each one shows a grid before and after.
+      The <em>same</em> hidden rule was applied to every one of them.</li>
+    <li><strong>Name the rule.</strong> On Easy it is always one plain step —
+      something like "rotate it" or "swap the colours".</li>
+    <li><strong>Build the answer</strong> for the test input. Set the size, pick a
+      colour, then click or drag to paint. <em>Copy input</em> starts you off from
+      the test grid, which is usually the fastest way in.</li>
+    <li><strong>Submit.</strong> Three attempts and five minutes each. Whoever gets
+      it right in the least time wins.</li>
+  </ol>
+  <p class="howto-foot">
+    The digits 0–9 are just colour names, and 0 is the background. Your answer has
+    to match exactly — every cell, and the right size.
+    <a href="./guide.html">Full guide →</a>
+  </p>
+</section>
+
 <section class="controls" aria-label="Race controls">
   <div class="field">
-    <label for="task-select">Task</label>
+    <label for="tier-select">Difficulty</label>
+    <select id="tier-select">
+      <option value="easy">Easy — one simple rule</option>
+      <option value="all">Everything — all 386 puzzles</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="task-select">Puzzle</label>
     <select id="task-select"><option value="">Loading…</option></select>
   </div>
 
@@ -75,6 +103,10 @@
     <h2>The puzzle <span class="task-id" id="task-id-label"></span></h2>
     <p class="task-hint">Each example turns an input into an output by the same hidden rule.
       Work out the rule, then build the output for the test input.</p>
+    <div class="hint-box">
+      <button type="button" id="btn-hint" class="hint-btn" hidden>Stuck? Show the hint</button>
+      <p class="hint-text" id="hint-text" hidden></p>
+    </div>
   </div>
   <div class="task-body">
     <div class="examples" id="examples"></div>

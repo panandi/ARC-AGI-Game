@@ -25,6 +25,9 @@ const el = (id) => document.getElementById(id);
 
 const dom = {
   taskSelect: el("task-select"),
+  tierSelect: el("tier-select"),
+  btnHint: el("btn-hint"),
+  hintText: el("hint-text"),
   opponent: el("opponent-select"),
   optServer: el("opt-server"),
   keyrow: el("keyrow"),
@@ -733,6 +736,8 @@ function resetView() {
 
   dom.taskVeil.hidden = false;
   dom.taskIdLabel.textContent = "";
+  dom.btnHint.hidden = true;
+  dom.hintText.hidden = true;
   dom.examples.textContent = "";
   dom.testInput.textContent = "";
   setOut(blank(3, 3));
@@ -793,6 +798,13 @@ async function startRace() {
   state.mode = mode;
   state.aiAbort = false;
   renderTask(state.task);
+  // Easy puzzles carry the name of their rule, revealed only on request.
+  if (state.task.hint) {
+    dom.btnHint.hidden = false;
+    dom.btnHint.textContent = "Stuck? Show the hint";
+    dom.hintText.hidden = true;
+    dom.hintText.textContent = `The rule is: ${state.task.hint}.`;
+  }
   setOut(blank(state.task.test_input.length, state.task.test_input[0].length));
   state.started = true;
   state.startWall = Date.now();
@@ -822,6 +834,26 @@ function stopRace() {
 
 /* -------------------------------- boot -------------------------------- */
 
+/* The easy tier is measured, not guessed: every puzzle in it is one whose
+ * single rule explains all the worked examples and predicts the real answer. */
+function populateTasks() {
+  const easyOnly = dom.tierSelect.value === "easy";
+  const list = easyOnly ? state.index.filter((t) => t.tier === "easy") : state.index;
+  dom.taskSelect.textContent = "";
+  list.forEach((t, i) => {
+    const option = document.createElement("option");
+    option.value = t.id;
+    option.textContent = easyOnly
+      ? `${i + 1}. ${t.id} · ${t.train} examples`
+      : `${t.id} · ${t.rows}×${t.cols} · ${t.train} examples`;
+    dom.taskSelect.appendChild(option);
+  });
+  const count = list.length;
+  dom.attemptsDisplay.textContent = easyOnly
+    ? `${count} easy puzzles · 3 attempts each`
+    : `${count} puzzles · 3 attempts each`;
+}
+
 function applyMode() {
   const mode = dom.opponent.value;
   dom.keyrow.hidden = mode !== "key";
@@ -848,13 +880,7 @@ async function boot() {
 
   try {
     state.index = await fetch("./data/index.json").then((r) => r.json());
-    dom.taskSelect.textContent = "";
-    state.index.forEach((t) => {
-      const option = document.createElement("option");
-      option.value = t.id;
-      option.textContent = `${t.id} · ${t.rows}×${t.cols} · ${t.train} examples`;
-      dom.taskSelect.appendChild(option);
-    });
+    populateTasks();
   } catch (err) {
     showBanner(`Could not load the task list: ${err.message}`, true);
   }
@@ -863,6 +889,12 @@ async function boot() {
   dom.btnStop.addEventListener("click", stopRace);
   dom.btnNew.addEventListener("click", resetView);
   dom.opponent.addEventListener("change", applyMode);
+  dom.tierSelect.addEventListener("change", populateTasks);
+  dom.btnHint.addEventListener("click", () => {
+    dom.hintText.hidden = !dom.hintText.hidden;
+    dom.btnHint.textContent = dom.hintText.hidden ? "Stuck? Show the hint" : "Hide the hint";
+    if (!dom.hintText.hidden) addLog("human", "looked at the hint");
+  });
   dom.saveKey.addEventListener("click", () => {
     const v = dom.apiKey.value.trim();
     try { localStorage.setItem(KEY_STORE, v); } catch (_) { /* private mode */ }

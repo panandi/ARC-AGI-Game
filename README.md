@@ -101,6 +101,11 @@ after the first solve. Turn it off and the first correct answer ends the race.
 │   ├── index.html
 │   ├── css/styles.css
 │   └── js/app.js
+├── docs/                        Serverless build published by GitHub Pages
+│   ├── index.html               The game, played entirely in the browser
+│   ├── guide.html               Player's guide
+│   ├── config.js                Optional backend URL for the AI lane
+│   └── data/                    386 tasks + a SHA-256 of each answer
 ├── Dockerfile                   One image serving both
 ├── docker-compose.yml
 ├── .env.example
@@ -252,13 +257,33 @@ would not see the first worker's races. Put the key in the platform's
   For SSE, set `proxy_buffering off`, and have the proxy **overwrite**
   `X-Forwarded-For` (the rate limiter reads its first hop).
 
-> Hiding an API key requires a backend: this app cannot be deployed as a
-> static-only site such as GitHub Pages.
+> Hiding **your** API key requires a backend: the keyed version of this app
+> cannot be deployed as a static-only site such as GitHub Pages.
 
-**GitHub Pages does have a job here, though:** `docs/` holds the player's guide
-as a standalone page. Enable Pages (Settings > Pages > branch `main`, folder
-`/docs`) to publish it at `https://<user>.github.io/<repo>/` and share that link
-with players. The guide is static; the game itself still needs the server above.
+### The GitHub Pages build
+
+`docs/` is a self-contained build that plays with no server at all, published
+at <https://panandi.github.io/ARC-AGI-Game/> (Settings > Pages > branch `main`,
+folder `/docs`). It exists precisely because Pages serves files and cannot run
+Python — so it never carries a key of yours.
+
+Puzzles ship as `docs/data/tasks/<id>.json` holding the worked examples, the
+test input, and a **SHA-256 of the answer** — not the answer. A submission is
+graded by hashing it in the browser and comparing digests, so the solution is
+never readable in the page.
+
+The AI opponent still needs a model, and a static site has nowhere safe to keep
+a key, so the visitor chooses:
+
+| Opponent | What it needs | Whose key |
+| --- | --- | --- |
+| **Solo** | nothing | none |
+| **AI — my own key** | an OpenRouter key the visitor pastes | theirs, held in their browser (`localStorage`) and sent only to openrouter.ai |
+| **AI — hosted server** | `window.ARC_RACE_API` set in `docs/config.js` | yours, and it never leaves that server |
+
+The third option is the full experience: deploy the backend as above, set
+`ALLOWED_ORIGIN=https://panandi.github.io` on it, put its URL in
+`docs/config.js`, and visitors race the AI without supplying a key.
 
 ---
 

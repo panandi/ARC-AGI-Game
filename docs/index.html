@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="How to play ARC Race: race an AI to solve the same ARC-AGI-1 puzzle.">
+<title>ARC Race</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600;700&display=swap">
+
+<style>
+/* ── Tokens: complete light palette on bare :root ─────────────────── */
+:root {
+  --ground:       #F3F5F8;
+  --surface:      #FFFFFF;
+  --sunk:         #E9EDF3;
+  --rule:         #D4DBE5;
+  --rule-soft:    #E3E8EF;
+
+  --ink:          #13171E;
+  --ink-soft:     #434C5A;
+  --ink-faint:    #687180;
+
+  /* Taken from the ARC-AGI-1 palette, darkened where they carry text. */
+  --human:        #0063BA;   /* colour 1, blue   */
+  --ai:           #1F8A33;   /* colour 3, green  */
+  --gold:         #7A6400;   /* colour 4, yellow */
+  --bad:          #C22B22;   /* colour 2, red    */
+  --gold-wash:    #FBF4D2;
+  --human-wash:   #E5EFFA;
+
+  /* Grids always sit on ARC's own dark hairlines: colour 0 is black. */
+  --grid-line:    #3A3F48;
+
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --sans:  "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:  "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --measure: 66ch;
+  --shell: 1040px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:     #0D1015;
+    --surface:    #141922;
+    --sunk:       #10141B;
+    --rule:       #29313D;
+    --rule-soft:  #1D242E;
+    --ink:        #E7ECF3;
+    --ink-soft:   #A9B3C1;
+    --ink-faint:  #7A8491;
+    --human:      #4DA3FF;
+    --ai:         #52D96A;
+    --gold:       #F2D12A;
+    --bad:        #FF7063;
+    --gold-wash:  #25200A;
+    --human-wash: #0F1E2E;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:     #0D1015;
+  --surface:    #141922;
+  --sunk:       #10141B;
+  --rule:       #29313D;
+  --rule-soft:  #1D242E;
+  --ink:        #E7ECF3;
+  --ink-soft:   #A9B3C1;
+  --ink-faint:  #7A8491;
+  --human:      #4DA3FF;
+  --ai:         #52D96A;
+  --gold:       #F2D12A;
+  --bad:        #FF7063;
+  --gold-wash:  #25200A;
+  --human-wash: #0F1E2E;
+}
+
+/* ARC-AGI-1 colours 0-9: the same values in both themes -- they are data. */
+.c0 { background: #000000; } .c1 { background: #0074D9; } .c2 { background: #FF4136; }
+.c3 { background: #2ECC40; } .c4 { background: #FFDC00; } .c5 { background: #AAAAAA; }
+.c6 { background: #F012BE; } .c7 { background: #FF851B; } .c8 { background: #7FDBFF; }
+.c9 { background: #870C25; }
+
+/* ── Base ─────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 clamp(16px, 5vw, 40px);
+  padding-block: 0 96px;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16.5px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell { max-width: var(--shell); margin: 0 auto; }
+.prose { max-width: var(--measure); }
+
+h1, h2, h3 { margin: 0; font-family: var(--serif); text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 30px); font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
+h3 { font-size: 18px; font-weight: 600; }
+
+p { margin: 0 0 1em; }
+p:last-child { margin-bottom: 0; }
+strong { font-weight: 600; }
+a { color: var(--human); text-underline-offset: 2px; }
+
+kbd, code, .mono { font-family: var(--mono); }
+kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 1px 6px;
+  font-size: 0.82em;
+  font-weight: 500;
+  text-align: center;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+:focus-visible { outline: 2px solid var(--human); outline-offset: 2px; border-radius: 2px; }
+
+section { padding-top: 56px; }
+
+.eyebrow {
+  display: block;
+  margin-bottom: 10px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.stack { display: flex; flex-direction: column; gap: 18px; margin-top: 16px; }
+
+/* ── Masthead ─────────────────────────────────────────────────────── */
+.masthead { padding: 56px 0 30px; border-bottom: 2px solid var(--ink); }
+
+.wordmark {
+  font-family: var(--serif);
+  font-size: clamp(40px, 8vw, 66px);
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 1;
+}
+.wordmark .race { color: var(--human); }
+
+.subhead {
+  margin: 10px 0 14px;
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.lede { max-width: 58ch; font-size: clamp(17px, 2.2vw, 20px); color: var(--ink-soft); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.chip {
+  padding: 4px 11px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+}
+
+.thesis {
+  max-width: 28ch;
+  margin: 40px 0 0;
+  padding: 4px 0 4px 24px;
+  font-family: var(--serif);
+  font-size: clamp(22px, 3.2vw, 28px);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+  border-left: 3px solid var(--human);
+  text-wrap: balance;
+}
+
+/* ── ARC grids ────────────────────────────────────────────────────── */
+.g {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell));
+  grid-auto-rows: var(--cell);
+  gap: 1px;
+  width: max-content;
+  background: var(--grid-line);
+  border: 1px solid var(--grid-line);
+}
+.g i { display: block; }
+
+.pairs { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+
+.pair {
+  margin: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.pair.test { border-color: var(--human); background: var(--human-wash); }
+.pair.answer { border-color: var(--ai); }
+
+.pair figcaption, .label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.pair-row { display: flex; align-items: center; gap: 10px; }
+.arrow { font-size: 16px; color: var(--ink-faint); }
+
+.note { margin-top: 12px; font-size: 13.5px; color: var(--ink-faint); max-width: var(--measure); }
+
+/* ── Palette legend ───────────────────────────────────────────────── */
+.palette {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 18px;
+}
+.swatch { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.swatch .chipc { height: 34px; border-radius: 3px; border: 1px solid var(--rule); }
+.swatch .name { font-size: 11px; line-height: 1.25; color: var(--ink-faint); }
+.swatch .name b { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+
+/* ── Steps (a real sequence) ──────────────────────────────────────── */
+.steps { list-style: none; margin: 20px 0 0; padding: 0; counter-reset: step; max-width: 72ch; }
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.steps li:first-child { border-top: 0; padding-top: 0; }
+.steps li::before {
+  content: counter(step);
+  width: 26px;
+  height: 26px;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--human);
+  border: 1px solid var(--human);
+  border-radius: 100px;
+}
+.steps p { margin: 0; color: var(--ink-soft); }
+.steps strong { color: var(--ink); }
+
+/* ── Tables ───────────────────────────────────────────────────────── */
+.table-wrap {
+  margin-top: 18px;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+thead th {
+  padding: 11px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+tbody th, tbody td {
+  padding: 10px 16px;
+  text-align: left;
+  vertical-align: top;
+  font-weight: 400;
+  border-top: 1px solid var(--rule-soft);
+}
+tbody tr:first-child th, tbody tr:first-child td { border-top: 0; }
+tbody th { white-space: nowrap; }
+
+/* ── Practice puzzle: the one raised object on the page ───────────── */
+.practice {
+  margin-top: 20px;
+  padding: clamp(16px, 3vw, 26px);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--human);
+  border-radius: 6px;
+}
+
+.practice-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+  margin-top: 16px;
+}
+
+.work { display: flex; flex-direction: column; gap: 12px; }
+
+.picker { display: flex; flex-wrap: wrap; gap: 5px; }
+.picker button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.picker button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 2px var(--surface); }
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 52px);
+  grid-auto-rows: 52px;
+  gap: 2px;
+  width: max-content;
+  padding: 2px;
+  background: var(--grid-line);
+}
+.board button { border: 0; padding: 0; cursor: crosshair; }
+.board button:hover { outline: 2px solid #FFFFFF; outline-offset: -2px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  padding: 8px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--sunk);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn.primary { color: var(--surface); background: var(--human); border-color: var(--human); }
+
+.verdict { min-height: 1.6em; margin: 0; font-size: 14.5px; color: var(--ink-soft); }
+.verdict.ok { color: var(--ai); font-weight: 600; }
+.verdict.bad { color: var(--bad); }
+
+/* ── Callouts and lists ───────────────────────────────────────────── */
+.callout {
+  margin-top: 20px;
+  max-width: 72ch;
+  padding: 16px 20px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  background: var(--gold-wash);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 6px 6px 0;
+}
+.callout strong { color: var(--ink); }
+
+.rules { margin: 18px 0 0; padding: 0; list-style: none; max-width: 72ch; }
+.rules li { padding: 11px 0; border-top: 1px solid var(--rule-soft); color: var(--ink-soft); }
+.rules li:first-child { border-top: 0; }
+.rules strong { color: var(--ink); }
+
+.tips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 0 32px;
+  margin-top: 16px;
+}
+.tip { padding: 13px 0; border-top: 1px solid var(--rule-soft); }
+.tip h3 { font-size: 16px; margin-bottom: 4px; }
+.tip p { margin: 0; font-size: 15px; color: var(--ink-soft); }
+
+.qa { max-width: 72ch; margin-top: 12px; }
+.qa div { padding: 13px 0; border-top: 1px solid var(--rule-soft); }
+.qa div:first-child { border-top: 0; }
+.qa dt { font-weight: 600; }
+.qa dd { margin: 4px 0 0; color: var(--ink-soft); }
+
+.pitch {
+  margin-top: 16px;
+  max-width: 60ch;
+  padding: 18px 22px;
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.5;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+.colophon {
+  margin-top: 64px;
+  padding-top: 20px;
+  max-width: var(--measure);
+  font-size: 13.5px;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--rule);
+}
+
+@media (max-width: 720px) {
+  .practice-grid { grid-template-columns: 1fr; }
+  .palette { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+  <header class="masthead">
+    <div class="wordmark">ARC <span class="race">RACE</span></div>
+    <p class="subhead">How to play</p>
+    <p class="lede">
+      You and an AI get the same puzzle at the same moment. Work out the hidden
+      rule from a few examples, build the answer, and submit it. Five minutes.
+      Three tries each. The fastest correct answer wins.
+    </p>
+    <div class="chips">
+      <span class="chip">ARC-AGI-1 puzzles</span>
+      <span class="chip">386 to choose from</span>
+      <span class="chip">5:00 clock</span>
+      <span class="chip">3 attempts each</span>
+    </div>
+  </header>
+
+  <p class="thesis">Nobody tells you the rule. The examples <em>are</em> the rules.</p>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-puzzle">
+    <span class="eyebrow">Start here</span>
+    <h2 id="h-puzzle">What a puzzle looks like</h2>
+    <div class="prose stack">
+      <p>
+        Every puzzle is a small grid of coloured squares. You get a few
+        <strong>examples</strong>, each showing an input grid and the output it
+        turns into. The same hidden rule made every one of them. Then you get a
+        <strong>test input</strong> on its own, and your job is to build its output
+        — every square, exactly.
+      </p>
+      <p>Here is a real one, task <span class="mono">0d3d703e</span>:</p>
+    </div>
+
+    <div class="pairs" id="worked"></div>
+
+    <div class="callout">
+      <strong>The rule:</strong> every colour is swapped for a partner — blue ↔ grey,
+      red ↔ magenta, green ↔ yellow, sky blue ↔ maroon. Nothing moves, nothing grows;
+      only colours change. So the test input (sky blue, blue, green) becomes
+      maroon, grey, yellow. Notice that no single example shows every swap — you
+      piece the rule together across all of them.
+    </div>
+
+    <h3 style="margin-top: 32px;">The ten colours</h3>
+    <p class="note" style="margin-top: 6px;">
+      Every puzzle uses only these. The number is the key you press to pick it.
+    </p>
+    <div class="palette" id="palette" role="img"
+         aria-label="The ten ARC colours: 0 black, 1 blue, 2 red, 3 green, 4 yellow, 5 grey, 6 magenta, 7 orange, 8 sky blue, 9 maroon"></div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-play">
+    <span class="eyebrow">A round, in order</span>
+    <h2 id="h-play">How to play</h2>
+    <ol class="steps">
+      <li><p><strong>Pick a task.</strong> The list is sorted smallest first, so the gentlest puzzles are at the top. For your first race, pick one of the first few.</p></li>
+      <li><p><strong>Press START RACE.</strong> The puzzle appears for you and the AI at the same instant, and a shared five-minute clock starts counting down.</p></li>
+      <li><p><strong>Study the examples.</strong> Compare each input with its output. What changed — colours, positions, size? What stayed exactly the same?</p></li>
+      <li><p><strong>Build your answer</strong> in the editor under your name. It starts the same size as the test input, all black.</p></li>
+      <li><p><strong>Press SUBMIT ANSWER.</strong> It must match exactly — a single wrong square counts as wrong. You'll only hear “correct” or “incorrect”, and you have three tries.</p></li>
+      <li><p><strong>See the result.</strong> It appears as soon as both of you are done, or when the clock hits zero.</p></li>
+    </ol>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-editor">
+    <span class="eyebrow">Controls</span>
+    <h2 id="h-editor">Building your answer</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Do this</th><th scope="col">To</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><kbd>0</kbd>–<kbd>9</kbd> or click a swatch</th><td>Pick a colour</td></tr>
+          <tr><th scope="row">Click or drag across squares</th><td>Paint them with the colour you picked</td></tr>
+          <tr><th scope="row"><kbd>F</kbd> then click</th><td>Flood-fill: repaint a whole connected area of one colour at once</td></tr>
+          <tr><th scope="row"><kbd>P</kbd></th><td>Back to painting single squares</td></tr>
+          <tr><th scope="row">Size + <span class="mono">RESIZE</span></th><td>Change the grid's rows and columns, when the answer is a different size</td></tr>
+          <tr><th scope="row"><span class="mono">COPY INPUT</span></th><td>Start from the test input — best when the answer is the input with a few changes</td></tr>
+          <tr><th scope="row"><span class="mono">CLEAR</span></th><td>Make every square black again</td></tr>
+          <tr><th scope="row"><span class="mono">SUBMIT ANSWER</span></th><td>Use one of your three attempts</td></tr>
+          <tr><th scope="row"><span class="mono">GIVE UP</span></th><td>End your run early; the AI keeps playing</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-try">
+    <span class="eyebrow">Practice</span>
+    <h2 id="h-try">Try one before you race</h2>
+    <p class="prose" style="margin-top: 14px;">
+      A real puzzle, task <span class="mono">6150a2bd</span>. Look at the two
+      examples, then paint the answer for the test input and check it.
+    </p>
+
+    <div class="practice">
+      <div class="pairs" id="practice-examples" style="margin-top: 0;"></div>
+
+      <div class="practice-grid">
+        <div class="work">
+          <span class="label">Your answer · pick a colour, then click squares</span>
+          <div class="picker" id="picker" role="group" aria-label="Colour"></div>
+          <div class="board" id="board" aria-label="Your 3 by 3 answer"></div>
+          <div class="actions">
+            <button type="button" class="btn primary" id="check">Check answer</button>
+            <button type="button" class="btn" id="copy">Copy input</button>
+            <button type="button" class="btn" id="reset">Clear</button>
+            <button type="button" class="btn" id="reveal">Show answer</button>
+          </div>
+          <p class="verdict" id="verdict" aria-live="polite"></p>
+        </div>
+        <figure class="pair answer" id="answer-box" hidden>
+          <figcaption>Answer</figcaption>
+          <div id="answer-grid"></div>
+          <p class="note" style="margin: 0; max-width: 24ch;">The whole grid is turned upside down — a half-turn.</p>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-win">
+    <span class="eyebrow">Scoring</span>
+    <h2 id="h-win">How you win</h2>
+    <ul class="rules">
+      <li><strong>Fastest correct answer wins.</strong> If you both solve it, the one who got there first takes the race.</li>
+      <li><strong>If only one of you solves it,</strong> that player wins, however long it took.</li>
+      <li><strong>If neither solves it</strong> before the clock runs out, there is no winner.</li>
+      <li><strong>Fewer attempts</strong> is shown separately, as a second measure of who reasoned it out more cleanly.</li>
+      <li><strong>Let both finish</strong> is on by default: when one player solves it, the other keeps going on their own clock. Switch it off and the first correct answer ends the race.</li>
+    </ul>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-ai">
+    <span class="eyebrow">Your opponent</span>
+    <h2 id="h-ai">Watching the AI play</h2>
+    <div class="prose stack">
+      <p>
+        The AI sees exactly what you see — the examples and the test input — and
+        nothing else. It never sees the answer or your work. It gets the same
+        three attempts and the same “correct / incorrect” feedback.
+      </p>
+      <p>
+        Its panel shows it working: a live <em>“Thinking about attempt 2 of 3…”</em>
+        timer, each answer the moment it lands with ✓ or ✗, and the rule it
+        thinks it has found. Every attempt stays on screen as a thumbnail, so you
+        can watch its idea change. It usually answers within a few seconds.
+      </p>
+    </div>
+    <div class="callout">
+      <strong>A fair warning:</strong> because you can see the AI's answers as
+      they arrive, a glance at its panel can hint at the solution. For a strictly
+      fair race, whoever runs the game can switch this off, and the AI's answers
+      then stay hidden until your run is over.
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-tips">
+    <span class="eyebrow">Guidance</span>
+    <h2 id="h-tips">Tips for solving</h2>
+    <div class="tips">
+      <div class="tip"><h3>Check the size first</h3><p>Is each output the same size as its input, bigger, or smaller? That alone often narrows the rule down.</p></div>
+      <div class="tip"><h3>Compare colour by colour</h3><p>What was added, removed, recoloured, or moved? Look for what never changes, too.</p></div>
+      <div class="tip"><h3>Think in shapes</h3><p>Common ideas: flipping, rotating, repeating, filling enclosed areas, drawing lines, counting, keeping only the biggest object.</p></div>
+      <div class="tip"><h3>Test your idea on every example</h3><p>A rule that explains the first example but not the third is the wrong rule. Check them all before you build.</p></div>
+      <div class="tip"><h3>Use Copy input and Fill</h3><p>If the answer is mostly the input, copy it and fix a few squares. Fill large areas in one click.</p></div>
+      <div class="tip"><h3>Check before you submit</h3><p>One wrong square is a wasted attempt. Scan row by row against your rule first — time is cheaper than a try.</p></div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-qa">
+    <span class="eyebrow">Quick answers</span>
+    <h2 id="h-qa">Things people ask</h2>
+    <dl class="qa">
+      <div><dt>Where do I play?</dt><dd>Open the ARC Race link you were given. If you're running it on your own computer, it's <span class="mono">http://localhost:8000</span>.</dd></div>
+      <div><dt>Is the AI given the answer?</dt><dd>No. The answer never leaves the server — not to your browser, and not to the AI.</dd></div>
+      <div><dt>Can the AI see my screen?</dt><dd>No. It only sees the puzzle and its own earlier attempts.</dd></div>
+      <div><dt>Why only three attempts?</dt><dd>The original ARC-AGI-1 competition scored the best of three guesses, so the race keeps that rule.</dd></div>
+      <div><dt>What if I run out of time?</dt><dd>Your run stops at 0:00 and the result is decided on what was solved by then.</dd></div>
+      <div><dt>Is this hard?</dt><dd>It's designed to be easy for people and hard for AI — but a five-minute clock makes even people sweat. Start with the small tasks.</dd></div>
+    </dl>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="h-share">
+    <span class="eyebrow">Passing it on</span>
+    <h2 id="h-share">Explain it in one line</h2>
+    <p class="pitch">
+      “It's a race against an AI on a little colour-grid puzzle. You get a few
+      examples, nobody tells you the rule, and you have five minutes and three
+      tries to build the answer. Fastest correct answer wins.”
+    </p>
+  </section>
+
+  <p class="colophon">
+    Puzzles come from the public ARC-AGI-1 training set by François Chollet
+    (Apache 2.0) — real benchmark tasks, not imitations. The two puzzles on this
+    page are tasks <span class="mono">0d3d703e</span> and
+    <span class="mono">6150a2bd</span>.
+  </p>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var NAMES = ["black", "blue", "red", "green", "yellow", "grey",
+               "magenta", "orange", "sky blue", "maroon"];
+
+  // Task 0d3d703e: a fixed colour swap.
+  var WORKED = {
+    train: [
+      [[[3,1,2],[3,1,2],[3,1,2]], [[4,5,6],[4,5,6],[4,5,6]]],
+      [[[2,3,8],[2,3,8],[2,3,8]], [[6,4,9],[6,4,9],[6,4,9]]],
+      [[[5,8,6],[5,8,6],[5,8,6]], [[1,9,2],[1,9,2],[1,9,2]]],
+      [[[9,4,2],[9,4,2],[9,4,2]], [[8,3,6],[8,3,6],[8,3,6]]]
+    ],
+    test: [[8,1,3],[8,1,3],[8,1,3]],
+    answer: [[9,5,4],[9,5,4],[9,5,4]]
+  };
+
+  // Task 6150a2bd: a half-turn.
+  var PRACTICE = {
+    train: [
+      [[[3,3,8],[3,7,0],[5,0,0]], [[0,0,5],[0,7,3],[8,3,3]]],
+      [[[5,5,2],[1,0,0],[0,0,0]], [[0,0,0],[0,0,1],[2,5,5]]]
+    ],
+    test: [[6,3,5],[6,8,0],[4,0,0]],
+    answer: [[0,0,4],[0,8,6],[5,3,6]]
+  };
+
+  function grid(data, cell) {
+    var g = document.createElement("div");
+    g.className = "g";
+    g.style.setProperty("--cols", String(data[0].length));
+    g.style.setProperty("--cell", cell + "px");
+    g.setAttribute("role", "img");
+    g.setAttribute("aria-label", data.map(function (row) {
+      return row.map(function (c) { return NAMES[c]; }).join(", ");
+    }).join("; "));
+    data.forEach(function (row) {
+      row.forEach(function (c) {
+        var i = document.createElement("i");
+        i.className = "c" + c;
+        g.appendChild(i);
+      });
+    });
+    return g;
+  }
+
+  function figure(label, extraClass, inGrid, outGrid, cell) {
+    var fig = document.createElement("figure");
+    fig.className = "pair" + (extraClass ? " " + extraClass : "");
+    var cap = document.createElement("figcaption");
+    cap.textContent = label;
+    fig.appendChild(cap);
+    var row = document.createElement("div");
+    row.className = "pair-row";
+    row.appendChild(grid(inGrid, cell));
+    if (outGrid) {
+      var arrow = document.createElement("span");
+      arrow.className = "arrow";
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.textContent = "→";
+      row.appendChild(arrow);
+      row.appendChild(grid(outGrid, cell));
+    }
+    fig.appendChild(row);
+    return fig;
+  }
+
+  // Worked example: examples, then the test and its answer.
+  var worked = document.getElementById("worked");
+  WORKED.train.forEach(function (p, n) {
+    worked.appendChild(figure("Example " + (n + 1), "", p[0], p[1], 20));
+  });
+  worked.appendChild(figure("Test input → answer", "test", WORKED.test, WORKED.answer, 20));
+
+  // Colour legend.
+  var palette = document.getElementById("palette");
+  NAMES.forEach(function (name, n) {
+    var s = document.createElement("div");
+    s.className = "swatch";
+    var c = document.createElement("div");
+    c.className = "chipc c" + n;
+    var t = document.createElement("span");
+    t.className = "name";
+    t.innerHTML = "<b>" + n + "</b> " + name;
+    s.append(c, t);
+    palette.appendChild(s);
+  });
+
+  // Practice puzzle.
+  var ex = document.getElementById("practice-examples");
+  PRACTICE.train.forEach(function (p, n) {
+    ex.appendChild(figure("Example " + (n + 1), "", p[0], p[1], 22));
+  });
+  ex.appendChild(figure("Test input", "test", PRACTICE.test, null, 22));
+
+  var colour = 1;
+  var work = [[0,0,0],[0,0,0],[0,0,0]];
+  var picker = document.getElementById("picker");
+  var board = document.getElementById("board");
+  var verdict = document.getElementById("verdict");
+
+  function pick(n) {
+    colour = n;
+    picker.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(Number(b.dataset.c) === n));
+    });
+  }
+
+  for (var n = 0; n < 10; n += 1) {
+    (function (k) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "c" + k;
+      b.dataset.c = String(k);
+      b.textContent = String(k);
+      b.setAttribute("aria-label", "Colour " + k + ", " + NAMES[k]);
+      b.addEventListener("click", function () { pick(k); });
+      picker.appendChild(b);
+    })(n);
+  }
+
+  function drawBoard() {
+    board.textContent = "";
+    work.forEach(function (row, r) {
+      row.forEach(function (c, col) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "c" + c;
+        b.setAttribute("aria-label", "Row " + (r + 1) + ", column " + (col + 1) + ": " + NAMES[c]);
+        b.addEventListener("click", function () {
+          work[r][col] = colour;
+          drawBoard();
+          board.querySelectorAll("button")[r * 3 + col].focus();
+        });
+        board.appendChild(b);
+      });
+    });
+  }
+
+  document.getElementById("check").addEventListener("click", function () {
+    var wrong = 0;
+    work.forEach(function (row, r) {
+      row.forEach(function (c, col) { if (c !== PRACTICE.answer[r][col]) wrong += 1; });
+    });
+    if (wrong === 0) {
+      verdict.textContent = "Correct — that's the rule. You're ready to race.";
+      verdict.className = "verdict ok";
+    } else {
+      verdict.textContent = "Not quite — " + wrong + " square" + (wrong === 1 ? " is" : "s are") +
+        " off. (In a race you'd only hear “incorrect”.)";
+      verdict.className = "verdict bad";
+    }
+  });
+  document.getElementById("copy").addEventListener("click", function () {
+    work = PRACTICE.test.map(function (row) { return row.slice(); });
+    drawBoard();
+  });
+  document.getElementById("reset").addEventListener("click", function () {
+    work = [[0,0,0],[0,0,0],[0,0,0]];
+    verdict.textContent = "";
+    verdict.className = "verdict";
+    drawBoard();
+  });
+  document.getElementById("reveal").addEventListener("click", function () {
+    var box = document.getElementById("answer-box");
+    var holder = document.getElementById("answer-grid");
+    holder.textContent = "";
+    holder.appendChild(grid(PRACTICE.answer, 26));
+    box.hidden = false;
+  });
+
+  // Number keys pick a colour, as in the game.
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/^[0-9]$/.test(e.key)) pick(Number(e.key));
+  });
+
+  pick(1);
+  drawBoard();
+})();
+</script>
+</body>
+</html>

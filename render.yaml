@@ -1,0 +1,16 @@
+# One-click deploy for Render (https://render.com): New > Blueprint > this repo.
+# The game needs a server: it keeps the OpenRouter key server-side, which a
+# static host such as GitHub Pages cannot do.
+services:
+  - type: web
+    name: arc-race
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      # Set this in Render's dashboard; never commit it.
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production

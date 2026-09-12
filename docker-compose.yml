@@ -1,0 +1,20 @@
+services:
+  arc-race:
+    build: .
+    image: arc-race:latest
+    container_name: arc-race
+    ports:
+      - "8000:8000"
+    # Secrets come from .env, which is gitignored and never baked into the image.
+    env_file:
+      - .env
+    restart: unless-stopped
+    # A single replica: race sessions are held in process memory.
+    deploy:
+      replicas: 1
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

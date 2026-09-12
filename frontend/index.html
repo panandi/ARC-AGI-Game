@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ARC Race — Human vs AI</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23121316'/%3E%3Crect x='2' y='2' width='5' height='5' fill='%230074D9'/%3E%3Crect x='9' y='9' width='5' height='5' fill='%232ECC40'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+<a class="skip" href="#editor-grid">Skip to the answer grid</a>
+
+<header class="masthead">
+  <div class="brand">
+    <h1>ARC-AGI-1</h1>
+    <p class="subtitle">HUMAN <span class="vs">vs</span> AI</p>
+  </div>
+  <div class="brand-meta">
+    <span class="pill" id="dataset-pill">arc-agi-1 · training set</span>
+    <span class="pill" id="tasks-pill">…</span>
+  </div>
+</header>
+
+<section class="controls" aria-label="Race controls">
+  <div class="field">
+    <label for="task-select">Task</label>
+    <select id="task-select"><option value="">Loading…</option></select>
+  </div>
+
+  <div class="field">
+    <label for="model-display">AI model</label>
+    <output id="model-display" class="readonly">—</output>
+  </div>
+
+  <div class="field field-check">
+    <label for="both-finish"><input type="checkbox" id="both-finish" checked /> Let both finish</label>
+  </div>
+
+  <div class="field field-actions">
+    <button id="btn-start" class="primary" type="button">START RACE</button>
+    <button id="btn-stop" class="danger" type="button" disabled>STOP</button>
+    <button id="btn-new" type="button">NEW RACE</button>
+  </div>
+</section>
+
+<p class="banner" id="banner" hidden></p>
+
+<section class="raceclock" id="raceclock" aria-label="Race clock">
+  <div class="clock-main">
+    <span class="clock-label">TIME REMAINING</span>
+    <span class="clock-value" id="countdown" role="timer" aria-live="off">05:00</span>
+  </div>
+  <div class="clock-bar" aria-hidden="true"><span id="clock-fill"></span></div>
+  <div class="clock-goal">
+    <span class="clock-label">RULES</span>
+    <span class="clock-goal-value" id="attempts-display">3 attempts each</span>
+  </div>
+</section>
+
+<!-- ------------------------------- PUZZLE -------------------------------- -->
+<section class="task-panel" id="task-panel" aria-label="The puzzle">
+  <div class="task-head">
+    <h2>The puzzle <span class="task-id" id="task-id-label"></span></h2>
+    <p class="task-hint">Each example turns an input into an output by the same hidden rule.
+      Work out the rule, then build the output for the test input.</p>
+  </div>
+  <div class="task-body">
+    <div class="examples" id="examples"></div>
+    <div class="test-block">
+      <span class="block-label">Test input</span>
+      <div id="test-input"></div>
+    </div>
+  </div>
+  <div class="task-veil" id="task-veil"><span>Press START RACE to reveal the puzzle</span></div>
+</section>
+
+<main class="arena">
+  <!-- ------------------------------- HUMAN ------------------------------- -->
+  <section class="panel" id="human-panel" aria-label="Human lane">
+    <div class="panel-head">
+      <h2>HUMAN</h2>
+      <span class="state-chip" id="human-chip">IDLE</span>
+    </div>
+
+    <div class="toolbar" aria-label="Answer grid tools">
+      <label class="size">Size
+        <input id="out-rows" type="number" min="1" max="30" value="3" aria-label="Rows" />
+        <span aria-hidden="true">×</span>
+        <input id="out-cols" type="number" min="1" max="30" value="3" aria-label="Columns" />
+      </label>
+      <button type="button" id="btn-resize">Resize</button>
+      <button type="button" id="btn-copy">Copy input</button>
+      <button type="button" id="btn-clear">Clear</button>
+      <span class="tool-group" role="group" aria-label="Tool">
+        <button type="button" id="tool-paint" class="tool" aria-pressed="true">Paint <kbd>P</kbd></button>
+        <button type="button" id="tool-fill" class="tool" aria-pressed="false">Fill <kbd>F</kbd></button>
+      </span>
+    </div>
+
+    <div class="palette" id="palette" role="group" aria-label="Colour — keys 0 to 9"></div>
+
+    <div class="editor-wrap">
+      <div id="editor-grid" aria-label="Your answer grid"></div>
+    </div>
+
+    <div class="submit-row">
+      <button type="button" id="btn-submit" class="primary" disabled>SUBMIT ANSWER</button>
+      <button type="button" id="btn-giveup" disabled>GIVE UP</button>
+      <p class="result" id="human-result" aria-live="polite"></p>
+    </div>
+
+    <dl class="stats">
+      <div><dt>Attempts</dt><dd id="human-attempts">0 / 3</dd></div>
+      <div><dt>Elapsed</dt><dd id="human-elapsed">00:00</dd></div>
+      <div><dt>State</dt><dd id="human-state">Idle</dd></div>
+    </dl>
+    <ol class="history" id="human-history" aria-label="Your attempts"></ol>
+  </section>
+
+  <!-- --------------------------------- AI -------------------------------- -->
+  <section class="panel" id="ai-panel" aria-label="AI lane">
+    <div class="panel-head">
+      <h2>AI</h2>
+      <span class="state-chip" id="ai-chip">IDLE</span>
+    </div>
+
+    <div class="ai-work" aria-live="polite">
+      <div class="ai-work-head">
+        <span class="block-label">Latest answer</span>
+        <span class="ai-verdict" id="ai-verdict"></span>
+      </div>
+      <div id="ai-grid"></div>
+      <p class="ai-hidden" id="ai-hidden">No attempt yet.</p>
+      <p class="ai-thinking" id="ai-thinking" hidden>Thinking…</p>
+    </div>
+    <div class="ai-gallery" id="ai-gallery" aria-label="Every AI attempt" hidden></div>
+
+    <dl class="stats">
+      <div><dt>Attempts</dt><dd id="ai-attempts">0 / 3</dd></div>
+      <div><dt>Elapsed</dt><dd id="ai-elapsed">00:00</dd></div>
+      <div><dt>State</dt><dd id="ai-state">Idle</dd></div>
+    </dl>
+    <ol class="history" id="ai-history" aria-label="AI attempts"></ol>
+
+    <div class="agent">
+      <div class="agent-row">
+        <span class="agent-label">Model calls</span>
+        <span class="agent-value" id="ai-calls">0</span>
+      </div>
+      <div class="agent-note">
+        <span class="agent-label">Rule it inferred</span>
+        <blockquote id="ai-rule">—</blockquote>
+      </div>
+      <p class="agent-error" id="ai-error" hidden></p>
+    </div>
+  </section>
+</main>
+
+<section class="scoreboard" id="scoreboard" hidden>
+  <h2 id="race-result">—</h2>
+  <p class="verdict" id="verdict-reason">—</p>
+
+  <table class="results" id="results-table">
+    <thead>
+      <tr><th>Lane</th><th>Result</th><th>Time</th><th>Attempts</th></tr>
+    </thead>
+    <tbody>
+      <tr id="result-human">
+        <th scope="row" class="lane-human">HUMAN</th>
+        <td class="r-outcome">—</td><td class="r-time">—</td><td class="r-attempts">—</td>
+      </tr>
+      <tr id="result-ai">
+        <th scope="row" class="lane-ai">AI</th>
+        <td class="r-outcome">—</td><td class="r-time">—</td><td class="r-attempts">—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="efficiency">Fewer attempts: <strong id="efficiency-result">—</strong></p>
+  <p class="caveat">
+    Winner is whoever submitted a correct answer in the least time. Wall-clock
+    speed is not an official ARC score — model API latency affects it.
+  </p>
+</section>
+
+<details class="log-wrap" id="log-wrap" open>
+  <summary>Event log <span class="log-count" id="log-count">0</span></summary>
+  <ol class="log" id="log" aria-live="polite"></ol>
+</details>
+
+<footer class="legend">
+  <p id="legend-main">
+    Both players get the same ARC-AGI-1 task at the same moment. You can watch every
+    answer the AI submits, and the rule it thinks it found, as it plays.
+  </p>
+  <p class="legend-dim" id="legend-note"></p>
+</footer>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

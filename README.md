@@ -241,8 +241,11 @@ One container, one worker — races live in process memory, so a second worker
 would not see the first worker's races. Put the key in the platform's
 **server-side** secrets UI, never in frontend configuration.
 
-- **Railway / Render:** deploy the repo with its `Dockerfile`, health check
-  `/health`, set `OPENROUTER_API_KEY` and `ENVIRONMENT=production`, one instance.
+- **Render (one click):** `render.yaml` in the repository root is a Blueprint.
+  In Render choose **New > Blueprint**, point it at this repo, and set
+  `OPENROUTER_API_KEY` when prompted. Health check `/health`, one instance.
+- **Railway:** deploy the repo with its `Dockerfile`, set `OPENROUTER_API_KEY`
+  and `ENVIRONMENT=production`, keep replicas at 1.
 - **Fly.io:** `fly launch --no-deploy`, `fly secrets set OPENROUTER_API_KEY=…`,
   `fly deploy`, `fly scale count 1`.
 - **Linux VM:** `docker compose up -d --build` behind nginx or Caddy for TLS.
@@ -251,6 +254,11 @@ would not see the first worker's races. Put the key in the platform's
 
 > Hiding an API key requires a backend: this app cannot be deployed as a
 > static-only site such as GitHub Pages.
+
+**GitHub Pages does have a job here, though:** `docs/` holds the player's guide
+as a standalone page. Enable Pages (Settings > Pages > branch `main`, folder
+`/docs`) to publish it at `https://<user>.github.io/<repo>/` and share that link
+with players. The guide is static; the game itself still needs the server above.
 
 ---
 

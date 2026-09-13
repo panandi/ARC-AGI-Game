@@ -876,12 +876,24 @@ function populateTasks() {
     : `${count} puzzles · 3 attempts each`;
 }
 
+/** "google/gemma-4-31b-it:free" -> "gemma-4-31b-it", for tight spaces. */
+function shortModel(slug) {
+  return slug.split("/").pop().replace(/:free$/, "");
+}
+
 function applyMode() {
   const mode = dom.opponent.value;
+  const model = currentModel();
+  const isFree = model.endsWith(":free");
   dom.keyrow.hidden = mode !== "key";
-  dom.ai.model.textContent = mode === "solo" ? "—" : currentModel();
-  dom.modePill.textContent = mode === "solo" ? "solo play"
-    : mode === "key" ? "AI · your key" : "AI · hosted";
+  // A hosted backend runs whatever model it was configured with, so claiming
+  // this browser's choice runs there would simply be false.
+  dom.ai.model.textContent = mode === "server"
+    ? "chosen by the server"
+    : isFree ? `${model} — free` : model;
+  dom.modePill.textContent = mode === "server"
+    ? "AI · hosted server"
+    : `${mode === "solo" ? "solo" : "your key"} · ${shortModel(model)}${isFree ? " · free" : ""}`;
 }
 
 async function boot() {

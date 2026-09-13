@@ -528,13 +528,22 @@ function currentModel() {
   return (dom.modelSelect && dom.modelSelect.value) || DEFAULT_MODEL;
 }
 
+/** "google/gemma-4-31b-it:free" -> "gemma-4-31b-it", for tight spaces. */
+function shortModel(slug) {
+  return slug.split("/").pop().replace(/:free$/, "");
+}
+
 function applyMode() {
   const mode = dom.opponent.value;
+  const model = currentModel();
+  const isFree = model.endsWith(":free");
   dom.keyrow.hidden = mode !== "key";
   dom.modelField.hidden = mode !== "key";
-  dom.ai.model.textContent = mode === "solo" ? "—" : currentModel();
-  dom.modePill.textContent = mode === "solo" ? "solo"
-    : currentModel().endsWith(":free") ? "vs AI · free" : "vs AI";
+  // Name the model even in solo: which one would play should never be a
+  // mystery just because you have not opened the opponent menu.
+  dom.ai.model.textContent = isFree ? `${model} — free` : model;
+  dom.modePill.textContent =
+    `${mode === "solo" ? "solo" : "vs AI"} · ${shortModel(model)}${isFree ? " · free" : ""}`;
 }
 
 function buildGuessButtons() {

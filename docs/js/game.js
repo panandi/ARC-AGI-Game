@@ -18,8 +18,14 @@ const MAX_SIDE = 30;
 const COLOURS = 10;
 const LIMIT_MS = 300000;
 const MAX_ATTEMPTS = 3;
-const MODEL = "google/gemini-2.5-flash";
+// Shares the model chosen on the MNIST-PRO page; free unless changed there.
+const DEFAULT_MODEL = "google/gemma-4-31b-it:free";
+const MODEL_STORE = "arc-race-model";
 const KEY_STORE = "arc-race-openrouter-key";
+
+function currentModel() {
+  try { return localStorage.getItem(MODEL_STORE) || DEFAULT_MODEL; } catch (_) { return DEFAULT_MODEL; }
+}
 
 const el = (id) => document.getElementById(id);
 
@@ -597,7 +603,7 @@ async function askOpenRouter(key, prompt) {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: MODEL,
+      model: currentModel(),
       max_tokens: 6000,
       temperature: 0.2,
       messages: [
@@ -873,7 +879,7 @@ function populateTasks() {
 function applyMode() {
   const mode = dom.opponent.value;
   dom.keyrow.hidden = mode !== "key";
-  dom.ai.model.textContent = mode === "solo" ? "—" : MODEL;
+  dom.ai.model.textContent = mode === "solo" ? "—" : currentModel();
   dom.modePill.textContent = mode === "solo" ? "solo play"
     : mode === "key" ? "AI · your key" : "AI · hosted";
 }

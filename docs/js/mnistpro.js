@@ -18,7 +18,11 @@ const DIRECTIONS = ["up", "down", "left", "right"];
 const MASK = 128;              // rendering.MASK_RGB
 const BORDER = "#00E5FF";      // rendering.BORDER_HEX
 const BORDER_WIDTH = 2;
-const MODEL = "google/gemini-2.5-flash";
+// Free by default, so a visitor can play without spending anything. Every model
+// offered accepts image input, which this game requires. The choice is shared
+// with the ARC game through the same stored key.
+const DEFAULT_MODEL = "google/gemma-4-31b-it:free";
+const MODEL_STORE = "arc-race-model";
 const KEY_STORE = "arc-race-openrouter-key";
 const MAX_ATTEMPTS = 3;        // agent.AgentConfig.max_attempts
 
@@ -47,6 +51,7 @@ const el = (id) => document.getElementById(id);
 const dom = {
   episode: el("episode-select"), view: el("view-select"),
   opponent: el("opponent-select"), modePill: el("mode-pill"),
+  modelSelect: el("model-select"), modelField: el("model-field"),
   keyrow: el("keyrow"), apiKey: el("api-key"),
   saveKey: el("btn-save-key"), forgetKey: el("btn-forget-key"),
   start: el("btn-start"), random: el("btn-random"), stop: el("btn-stop"),
@@ -350,7 +355,7 @@ async function callModel(key, history) {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: MODEL,
+      model: currentModel(),
       max_tokens: 800,
       messages: [{ role: "system", content: SYSTEM_INSTRUCTION }, ...history],
     }),
@@ -519,11 +524,17 @@ function stopRound() {
 
 /* -------------------------------- boot -------------------------------- */
 
+function currentModel() {
+  return (dom.modelSelect && dom.modelSelect.value) || DEFAULT_MODEL;
+}
+
 function applyMode() {
   const mode = dom.opponent.value;
   dom.keyrow.hidden = mode !== "key";
-  dom.ai.model.textContent = mode === "solo" ? "—" : MODEL;
-  dom.modePill.textContent = mode === "solo" ? "solo" : "vs AI";
+  dom.modelField.hidden = mode !== "key";
+  dom.ai.model.textContent = mode === "solo" ? "—" : currentModel();
+  dom.modePill.textContent = mode === "solo" ? "solo"
+    : currentModel().endsWith(":free") ? "vs AI · free" : "vs AI";
 }
 
 function buildGuessButtons() {
@@ -542,6 +553,10 @@ function buildGuessButtons() {
 async function boot() {
   buildGuessButtons();
   reset();
+  try {
+    const saved = localStorage.getItem(MODEL_STORE);
+    if (saved) dom.modelSelect.value = saved;
+  } catch (_) { /* private mode */ }
   applyMode();
   if (savedKey()) dom.apiKey.value = savedKey();
 
@@ -567,6 +582,10 @@ async function boot() {
     startRound();
   });
   dom.opponent.addEventListener("change", applyMode);
+  dom.modelSelect.addEventListener("change", () => {
+    try { localStorage.setItem(MODEL_STORE, dom.modelSelect.value); } catch (_) { /* ignore */ }
+    applyMode();
+  });
   dom.view.addEventListener("change", () => {
     state.view = dom.view.value;
     if (state.human) renderLane("human");

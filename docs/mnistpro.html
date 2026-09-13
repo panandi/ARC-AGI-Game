@@ -68,6 +68,23 @@
     </select>
   </div>
 
+  <div class="field" id="model-field" hidden>
+    <label for="model-select">Model</label>
+    <select id="model-select">
+      <optgroup label="Free — nothing charged to your key">
+        <option value="google/gemma-4-31b-it:free" selected>Gemma 4 31B — free</option>
+        <option value="google/gemma-4-26b-a4b-it:free">Gemma 4 26B A4B — free</option>
+        <option value="inclusionai/ling-3.0-flash-vl:free">Ling 3.0 Flash VL — free</option>
+        <option value="thinkingmachines/inkling:free">Inkling — free</option>
+        <option value="openrouter/free">Free Models Router</option>
+      </optgroup>
+      <optgroup label="Paid — charged to your key">
+        <option value="google/gemini-3.8-flash">Gemini 3.8 Flash</option>
+        <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+      </optgroup>
+    </select>
+  </div>
+
   <div class="field field-actions">
     <button id="btn-start" class="primary" type="button">START ROUND</button>
     <button id="btn-random" type="button">RANDOM</button>
@@ -80,9 +97,11 @@
     <button type="button" id="btn-save-key">Save key</button>
     <button type="button" id="btn-forget-key">Forget</button>
     <p class="hint">
-      Stored only in this browser and sent only to openrouter.ai. The model needs
-      to see images, so this uses a vision model. Get a key at
-      <a href="https://openrouter.ai/keys">openrouter.ai/keys</a>.
+      Stored only in this browser and sent only to openrouter.ai. Get a key at
+      <a href="https://openrouter.ai/keys">openrouter.ai/keys</a>. Every model
+      listed accepts images, which this game requires. Free models are rate
+      limited, and a round can take up to 36 calls, so a long round may stall —
+      switch to a paid model if that happens.
     </p>
   </div>
 </section>

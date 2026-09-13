@@ -155,7 +155,7 @@ All are read **by the server only**. Never prefix any of them with
 | Variable | Default | Purpose |
 |---|---|---|
 | `OPENROUTER_API_KEY` | *(empty)* | **Secret.** Enables the AI lane. |
-| `OPENROUTER_MODEL` | `google/gemini-2.5-flash` | Model slug. The browser cannot set it. |
+| `OPENROUTER_MODEL` | `google/gemma-4-31b-it:free` | Model slug, free by default. Must accept image input for MNIST-PRO. The browser cannot set it. |
 | `OPENROUTER_MAX_OUTPUT_TOKENS` | `6000` | Must fit a full 30 × 30 answer; pretty-printed JSON runs ~4 tokens a cell. |
 | `RACE_TIME_LIMIT_SECONDS` | `300` | The shared countdown (30–3600). |
 | `MAX_ATTEMPTS` | `3` | Submissions per player (1–10). |
@@ -185,7 +185,7 @@ side, colours 0–9). After a wrong answer the next prompt says so and shows wha
 it already tried; it never learns *why* it was wrong.
 
 **Why no "thinking" mode.** Measured on eight small real tasks with
-`gemini-2.5-flash`:
+`gemini-2.5-flash`, which was the default at the time of the measurement:
 
 | Mode | Solved | Median time | Cost / attempt |
 |---|---|---|---|
@@ -194,6 +194,11 @@ it already tried; it never learns *why* it was wrong.
 
 In a timed race with three attempts, fast and cheap wins. A whole race costs
 the AI at most three calls — well under a cent.
+
+The default is now a **free** model (`google/gemma-4-31b-it:free`), so a race
+costs nothing at all. Players can switch to a paid model from the MNIST-PRO
+page, and that choice applies to both games. Free models are rate limited, which
+matters most in MNIST-PRO, where a single round can take up to 36 calls.
 
 **When something goes wrong.** A malformed reply is retried once inline and
 doesn't cost an attempt; three failed tries in a row retire the lane. A fatal

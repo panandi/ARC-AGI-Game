@@ -82,7 +82,7 @@ class Settings(BaseSettings):
     # Measured on real ARC-AGI-1 tasks: plain answering solved 5 of 8 small
     # tasks at ~5 s and ~$0.0005 a call; low-effort reasoning solved 6 of 8 at
     # ~7.5 s and ~5x the cost. In a timed race with three attempts, fast wins.
-    openrouter_model: str = "google/gemini-2.5-flash"
+    openrouter_model: str = "google/gemma-4-31b-it:free"
     # Must fit a whole answer. Models tend to pretty-print JSON, one number per
     # line, so a 30x30 grid can take ~4 tokens a cell (~3,700 tokens); a 3,000
     # budget was seen cutting an answer off mid-grid. The ceiling only costs
@@ -137,7 +137,7 @@ class Settings(BaseSettings):
     @classmethod
     def _scrub_model(cls, value: object) -> object:
         if isinstance(value, str):
-            return _scrub(value) or "google/gemini-2.5-flash"
+            return _scrub(value) or "google/gemma-4-31b-it:free"
         return value
 
     # ------------------------------------------------------------------
